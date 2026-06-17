@@ -6,6 +6,10 @@ import HistoryDetailModal from '../components/HistoryDetailModal';
 import Footer from '../components/Footer';
 import './PredictPage.css';
 
+// ✅ Ambil URL API dari environment variable (untuk production)
+// Fallback ke localhost jika dijalankan di komputer sendiri (development)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 function PredictPage() {
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -38,7 +42,8 @@ function PredictPage() {
     formData.append('file', image);
 
     try {
-      const res = await fetch('http://localhost:8000/predict', {
+      // ✅ Gunakan API_URL yang sudah didefinisikan di atas
+      const res = await fetch(`${API_URL}/predict`, {
         method: 'POST',
         body: formData,
       });
