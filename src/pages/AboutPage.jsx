@@ -1,119 +1,84 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import Footer from '../components/Footer';
-import './AboutPage.css';
+const goals = [
+  'Mengidentifikasi jenis dan spesies sayuran dari foto',
+  'Mengklasifikasikan kualitas sayuran: muda, matang, layu, atau busuk',
+  'Memberi rekomendasi penyimpanan dan penanganan pascapanen',
+  'Menerapkan pertanian cerdas berbasis teknologi',
+];
 
-const AboutPage = () => {
+const specs = [
+  ['Arsitektur', 'MobileNetV2 (transfer learning)'],
+  ['Ukuran input', '128 × 128 piksel'],
+  ['Model spesies', '8 kelas'],
+  ['Model kualitas', '16 kelas (4 sayuran × 4 tingkat)'],
+  ['Sayuran', 'Cabai, kubis, terong, tomat'],
+  ['Tingkat kualitas', 'Muda, matang, layu, busuk'],
+];
+
+const stack = [
+  { title: 'Frontend', text: 'React + Vite, React Router, CSS, LocalStorage' },
+  { title: 'Backend', text: 'FastAPI (Python), REST API, CORS, Uvicorn' },
+  { title: 'Deep learning', text: 'TensorFlow + Keras, MobileNetV2, transfer learning, fine-tuning' },
+  { title: 'Alat dan deployment', text: 'Git, VS Code, Pillow, NumPy. Frontend di Vercel, backend siap di Railway' },
+];
+
+export default function AboutPage() {
   return (
-    <div className="about-page">
-      {/* Header Section */}
-      <section className="about-header">
-        <div className="hero-badge">📖 Informasi Proyek</div>
-        <h1>Tentang Project</h1>
-        <p className="about-subtitle">Mengenal lebih dekat dengan sistem ini</p>
-      </section>
+    <div className="container about">
+      <header className="page-head">
+        <h1>Tentang proyek</h1>
+        <p>Sistem klasifikasi spesies dan kualitas sayuran berbasis deep learning.</p>
+      </header>
 
-      {/* Latar Belakang & Tujuan */}
-      <section className="about-section">
-        <div className="content-card">
-          <h2>🎯 Latar Belakang & Tujuan</h2>
-          <p className="section-text">
-            Proyek ini dikembangkan sebagai bagian dari Tugas Akhir program studi Teknik Informatika. 
-            Tujuannya adalah membantu petani, distributor, dan konsumen dalam mengklasifikasikan spesies 
-            dan menilai kualitas sayuran secara cepat, objektif, dan akurat menggunakan teknologi Deep Learning (CNN).
+      <div className="about-grid">
+        <section className="panel">
+          <h2>Latar belakang dan tujuan</h2>
+          <p className="about-text">
+            Proyek ini dikembangkan sebagai Tugas Akhir program studi Teknik Informatika. Tujuannya
+            membantu petani, distributor, dan konsumen mengenali spesies serta menilai kualitas
+            sayuran dengan cepat dan objektif, memakai Convolutional Neural Network (CNN).
           </p>
-          <ul className="objective-list">
-            <li>Mengidentifikasi jenis sayuran serta spesiesnya secara real-time</li>
-            <li>Mengklasifikasikan kualitas sayuran (Muda, Matang, Layu, Busuk)</li>
-            <li>Merekomendasi penyimpanan & penanganan pasca-panen</li>
-            <li>Mengimplementasikan pertanian cerdas berbasis teknologi </li>
+          <ul className="goal-list">
+            {goals.map((g) => <li key={g}>{g}</li>)}
           </ul>
-        </div>
-      </section>
+        </section>
 
-      {/* Teknologi Stack */}
-      <section className="about-section">
-        <div className="section-header">
-          <h2>🛠️ Teknologi yang Digunakan</h2>
-        </div>
-        <div className="tech-grid">
-          <div className="tech-card">
-            <span className="tech-icon">⚛️</span>
-            <h3>Frontend</h3>
-            <p>React.js + Vite, React Router, Modern CSS3, LocalStorage</p>
-          </div>
-          <div className="tech-card">
-            <span className="tech-icon">🐍</span>
-            <h3>Backend</h3>
-            <p>FastAPI (Python), RESTful API, CORS, Uvicorn</p>
-          </div>
-          <div className="tech-card">
-            <span className="tech-icon">🤖</span>
-            <h3>Deep Learning</h3>
-            <p>TensorFlow + Keras, MobileNetV2, Transfer Learning, Fine-tuning</p>
-          </div>
-          <div className="tech-card">
-            <span className="tech-icon">📦</span>
-            <h3>Deployment & Tools</h3>
-            <p>Git, VS Code, Pillow, NumPy, Ready for Cloud (Railways)</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Section */}
-      <section className="features-section">
-        <div className="section-header">
-          <h2>📊 Spesifikasi Model</h2>
-        </div>
-
-        <div className="features-grid">
-          <div className="feature-card">
-            <div className="feature-icon">🎯</div>
-            <h3>Klasifikasi Spesies</h3>
-            <p>Mengidentifikasi 8 jenis sayuran dan spesiesnya: Cabai, Kubis, Terong, dan Tomat.</p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">✨</div>
-            <h3>Analisis Kualitas</h3>
-            <p>Menilai kondisi sayuran dalam 4 tingkat: Muda, Matang, Layu, dan Busuk.</p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">📝</div>
-            <h3>Penjelasan Detail</h3>
-            <p>Setiap hasil dilengkapi dengan informasi lengkap, tips penyimpanan, dan rekomendasi.</p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">📱</div>
-            <h3>Mobile Friendly</h3>
-            <p>Desain responsif yang optimal digunakan di smartphone maupun desktop.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Developer / Author */}
-      <section className="about-section">
-        <div className="content-card">
-          <h2>👨‍ Developer & Akademik</h2>
-          <div className="dev-info">
-            <div className="dev-avatar">🎓</div>
-            <div className="dev-details">
-              <h3>Mahasiswa Teknik Informatika UNIPA</h3>
-              <p>Proyek ini dikembangkan sebagai Tugas Akhir dengan fokus pada penerapan Deep Learning (CNN) untuk bidang pertanian digital.</p>
-              <div className="dev-meta">
-                <span>📅 Tahun: 2026</span>
-                <span>🏫 Program Studi: Teknik Informatika</span>
-                <span>📧 Kontak: thorixrover@gmail.com</span>
+        <section className="panel">
+          <h2>Spesifikasi model</h2>
+          <dl className="spec">
+            {specs.map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
               </div>
+            ))}
+          </dl>
+        </section>
+      </div>
+
+      <section className="section about-stack">
+        <div className="section-head">
+          <h2>Teknologi yang digunakan</h2>
+        </div>
+        <div className="stack">
+          {stack.map((s) => (
+            <div key={s.title} className="stack-item">
+              <h3>{s.title}</h3>
+              <p>{s.text}</p>
             </div>
-          </div>
+          ))}
         </div>
       </section>
-      <Footer />
+
+      <section className="panel">
+        <h2>Pengembang</h2>
+        <p className="about-text">
+          Mahasiswa Teknik Informatika UNIPA. Proyek ini adalah Tugas Akhir tahun 2026 dengan fokus
+          penerapan deep learning untuk pertanian digital.
+        </p>
+        <p className="about-contact">
+          Kontak: <a href="mailto:thorixrover@gmail.com">thorixrover@gmail.com</a>
+        </p>
+      </section>
     </div>
   );
-};
-
-export default AboutPage;
+}

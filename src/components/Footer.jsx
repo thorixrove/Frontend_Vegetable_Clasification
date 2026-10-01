@@ -1,37 +1,19 @@
-import React from 'react';
-import './Footer.css';
+import { Link } from 'react-router-dom';
 
-const Footer = () => {
+export default function Footer() {
   return (
-    <footer className="app-footer">
-      <div className="footer-content">
-        <div className="footer-brand">
- 
-          <h3>Vegetable Classification</h3>
-  
+    <footer className="footer">
+      <div className="footer-inner">
+        <div>
+          <p className="footer-brand">Klasifikasi Sayuran</p>
+          <p>Tugas Akhir Teknik Informatika, Universitas Papua, 2026.</p>
         </div>
-        
-        <div className="footer-tech">
-  
-          <div className="tech-tags">
-            <span>React.js</span>
-            <span>FastAPI</span>
-            <span>MobileNetV2</span>
-            <span>TensorFlow</span>
-          </div>
-        </div>
-        
-        <div className="footer-info">
-          <h4>Informasi Proyek</h4>
-          <p>FINAL - PROJECT</p>
-        </div>
-      </div>
-      
-      <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} Vegetable Classification | MobileNetV2 Architecture</p>
+        <nav className="footer-links" aria-label="Tautan footer">
+          <Link to="/">Beranda</Link>
+          <Link to="/predict">Prediksi</Link>
+          <Link to="/about">Tentang</Link>
+        </nav>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}

@@ -1,194 +1,264 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Camera, LoaderCircle, ScanSearch, TriangleAlert, Upload, X } from 'lucide-react';
 import Dashboard from '../components/Dashboard';
 import PredictionResult from '../components/PredictionResult';
+import QualityScale from '../components/QualityScale';
 import HistoryItem from '../components/HistoryItem';
 import HistoryDetailModal from '../components/HistoryDetailModal';
-import Footer from '../components/Footer';
-import './PredictPage.css';
+import { makeThumbnail } from '../utils/format';
 
-// ✅ Ambil URL API dari environment variable (untuk production)
-// Fallback ke localhost jika dijalankan di komputer sendiri (development)
+// URL API dari environment variable (production), fallback ke localhost saat development
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const MAX_MB = 5;
+const HISTORY_KEY = 'predictionHistory';
 
-function PredictPage() {
-  const [image, setImage] = useState(null);
+// buang riwayat lama atau rusak yang bentuknya tidak sesuai
+const isValidEntry = (h) =>
+  typeof h?.result?.species === 'string' && typeof h?.result?.quality === 'string';
+
+const loadHistory = () => {
+  try {
+    const data = JSON.parse(localStorage.getItem(HISTORY_KEY));
+    return Array.isArray(data) ? data.filter(isValidEntry) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveHistory = (list) => {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  } catch {
+    // penyimpanan penuh: riwayat tetap tampil selama halaman terbuka
+  }
+};
+
+export default function PredictPage() {
+  const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem('predictionHistory');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [selectedHistory, setSelectedHistory] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [history, setHistory] = useState(loadHistory);
+  const [selected, setSelected] = useState(null);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImage(file);
-      setPreview(URL.createObjectURL(file));
-      setResult(null);
-      setError('');
+  const fileRef = useRef(null);
+  const cameraRef = useRef(null);
+  const resultRef = useRef(null);
+
+  // lepaskan object URL lama saat gambar diganti atau halaman ditutup
+  useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
+
+  // di layar kecil, geser ke hasil setelah prediksi selesai
+  useEffect(() => {
+    if (result) resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [result]);
+
+  const chooseFile = (f) => {
+    if (!f) return;
+    if (!f.type.startsWith('image/')) {
+      setError('File harus berupa gambar JPG atau PNG.');
+      return;
     }
+    if (f.size > MAX_MB * 1024 * 1024) {
+      setError(`Ukuran gambar maksimal ${MAX_MB} MB.`);
+      return;
+    }
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+    setResult(null);
+    setError('');
   };
 
-  const handlePredict = async () => {
-    if (!image) return;
+  const resetImage = () => {
+    setFile(null);
+    setPreview(null);
+    setResult(null);
+    setError('');
+  };
+
+  const predict = async () => {
+    if (!file || loading) return;
     setLoading(true);
     setError('');
     setResult(null);
 
-    const formData = new FormData();
-    formData.append('file', image);
+    const body = new FormData();
+    body.append('file', file);
 
     try {
-      // ✅ Gunakan API_URL yang sudah didefinisikan di atas
-      const res = await fetch(`${API_URL}/predict`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!res.ok) throw new Error('Gagal memproses gambar');
+      const res = await fetch(`${API_URL}/predict`, { method: 'POST', body });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || 'Server gagal memproses gambar.');
+      }
       const data = await res.json();
       setResult(data);
-      
-      const historyItem = {
+
+      const thumbnail = await makeThumbnail(file);
+      const entry = {
         id: Date.now(),
-        image: preview,
+        image: thumbnail,
         result: data,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      
-      const newHistory = [historyItem, ...history].slice(0, 20);
-      setHistory(newHistory);
-      localStorage.setItem('predictionHistory', JSON.stringify(newHistory));
-    } catch (err) {
-      setError(err.message || 'Terjadi kesalahan pada server');
+      const next = [entry, ...history].slice(0, 20);
+      setHistory(next);
+      saveHistory(next);
+    } catch (e) {
+      setError(
+        e instanceof TypeError
+          ? 'Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi. Server yang baru aktif bisa butuh beberapa saat.'
+          : e.message,
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const clearHistory = () => {
+  const deleteItem = (id) => {
+    const next = history.filter((h) => h.id !== id);
+    setHistory(next);
+    saveHistory(next);
+    if (selected?.id === id) setSelected(null);
+  };
+
+  const clearAll = () => {
+    if (!window.confirm('Hapus semua riwayat prediksi?')) return;
     setHistory([]);
-    localStorage.removeItem('predictionHistory');
+    localStorage.removeItem(HISTORY_KEY);
   };
 
-  const deleteHistoryItem = (id) => {
-    const newHistory = history.filter(item => item.id !== id);
-    setHistory(newHistory);
-    localStorage.setItem('predictionHistory', JSON.stringify(newHistory));
-    if (selectedHistory && selectedHistory.id === id) {
-      setSelectedHistory(null);
-    }
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    chooseFile(e.dataTransfer.files[0]);
   };
 
-  const openHistoryDetail = (item) => setSelectedHistory(item);
-  const closeHistoryDetail = () => setSelectedHistory(null);
+  const onPick = (e) => {
+    chooseFile(e.target.files[0]);
+    e.target.value = '';
+  };
 
   return (
-    <>
-      <div className="app-container">
-           {/* Header Section */}
-      <section className="about-header">
-        <div className="hero-badge">📖 Klasifikasi Spesies & Kualitas</div>
-        <h1>Memulai Prediksi</h1>
-      </section>
-       
+    <div className="container predict">
+      <header className="page-head">
+        <h1>Prediksi</h1>
+        <p>Unggah satu foto sayuran untuk mengetahui spesies dan kualitasnya.</p>
+      </header>
 
-        {/* Dashboard Section */}
-        <Dashboard history={history} />
+      <Dashboard history={history} />
 
-        {/* Upload Section */}
-        <div className="upload-section">
-          <div className="image-preview-container">
-            {preview ? (
-              <div className="preview-wrapper">
-                <img src={preview} alt="Preview" className="preview-image" />
-                <button 
-                  className="remove-btn" 
-                  onClick={() => { setImage(null); setPreview(null); setResult(null); }}
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <div className="placeholder-container">
-                <div className="upload-icon">📷</div>
-                <p className="placeholder-text">Pilih gambar sayuran</p>
-                <p className="placeholder-subtext">Format: JPG, PNG (Max 5MB)</p>
-              </div>
-            )}
-          </div>
-
-          <div className="action-buttons">
-            <label className="btn-upload">
-               Pilih Gambar
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={handleFileChange} 
-                className="file-input" 
-              />
-            </label>
-            <button 
-              className="btn-predict" 
-              disabled={!image || loading} 
-              onClick={handlePredict}
-            >
-              {loading ? (
-                <span className="loading-text">
-                  <span className="spinner">⏳</span> Memproses...
-                </span>
-              ) : (
-                <> Prediksi Sekarang</>
-              )}
-            </button>
-          </div>
-          {error && <div className="error-message">⚠️ {error}</div>}
-        </div>
-
-        {/* Result Section */}
-        {result && <PredictionResult result={result} />}
-
-        {/* History Section */}
-        {history.length > 0 && (
-          <div className="history-section">
-            <div className="history-header">
-              <h3> Riwayat Prediksi ({history.length})</h3>
-              <button className="btn-clear" onClick={clearHistory}>
-                 Hapus Semua
+      <div className="predict-grid">
+        <section className="panel" aria-label="Unggah gambar">
+          {preview ? (
+            <div className="preview">
+              <img src={preview} alt="Pratinjau gambar yang dipilih" />
+              <button className="icon-btn preview-remove" onClick={resetImage} aria-label="Hapus gambar">
+                <X size={18} />
               </button>
             </div>
-            <div className="history-grid">
-              {history.map((item) => (
-                <HistoryItem
-                  key={item.id}
-                  item={item}
-                  onClick={() => openHistoryDetail(item)}
-                  onDelete={() => deleteHistoryItem(item.id)}
-                />
-              ))}
+          ) : (
+            <div
+              className={`dropzone ${dragging ? 'is-dragging' : ''}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => fileRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  fileRef.current?.click();
+                }
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
+            >
+              <Upload size={32} />
+              <p className="dropzone-title">Seret foto ke sini atau klik untuk memilih</p>
+              <p className="dropzone-hint">JPG atau PNG, maksimal {MAX_MB} MB</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Modal Detail History */}
-        {selectedHistory && (
-          <HistoryDetailModal
-            item={selectedHistory}
-            onClose={closeHistoryDetail}
-            onDelete={() => {
-              deleteHistoryItem(selectedHistory.id);
-              closeHistoryDetail();
-            }}
-          />
-        )}
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPick} />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={onPick} />
+
+          <div className="panel-actions">
+            <button className="btn btn-primary" onClick={predict} disabled={!file || loading}>
+              {loading ? (
+                <>
+                  <LoaderCircle className="spin" size={18} />
+                  Memproses...
+                </>
+              ) : (
+                <>
+                  <ScanSearch size={18} />
+                  Prediksi sekarang
+                </>
+              )}
+            </button>
+            <button className="btn btn-ghost btn-camera" onClick={() => cameraRef.current?.click()}>
+              <Camera size={18} />
+              Kamera
+            </button>
+          </div>
+
+          {error && (
+            <p className="alert" role="alert">
+              <TriangleAlert size={18} />
+              {error}
+            </p>
+          )}
+        </section>
+
+        <section className="panel result-panel" ref={resultRef} aria-live="polite">
+          {loading ? (
+            <div className="state">
+              <LoaderCircle className="spin" size={28} />
+              <p>Menganalisis foto...</p>
+            </div>
+          ) : result ? (
+            <PredictionResult result={result} />
+          ) : (
+            <div className="state">
+              <p className="state-title">Hasil muncul di sini</p>
+              <p>Pilih foto, lalu tekan Prediksi sekarang.</p>
+              <QualityScale />
+            </div>
+          )}
+        </section>
       </div>
-      
-      {/* Footer */}
-      <Footer />
-    </>
+
+      {history.length > 0 && (
+        <section className="history" aria-label="Riwayat prediksi">
+          <div className="history-head">
+            <h2>Riwayat ({history.length})</h2>
+            <button className="btn btn-ghost btn-sm" onClick={clearAll}>Hapus semua</button>
+          </div>
+          <div className="history-grid">
+            {history.map((item) => (
+              <HistoryItem
+                key={item.id}
+                item={item}
+                onClick={() => setSelected(item)}
+                onDelete={() => deleteItem(item.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {selected && (
+        <HistoryDetailModal
+          item={selected}
+          onClose={() => setSelected(null)}
+          onDelete={() => deleteItem(selected.id)}
+        />
+      )}
+    </div>
   );
 }
-
-export default PredictPage;

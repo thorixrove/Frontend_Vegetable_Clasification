@@ -1,48 +1,36 @@
-import React from 'react';
-import './HistoryItem.css';
+import { ImageOff, Trash2 } from 'lucide-react';
+import { formatDate, parseQuality, splitLabel, stageClass } from '../utils/format';
 
-const HistoryItem = ({ item, onClick, onDelete }) => {
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+export default function HistoryItem({ item, onClick, onDelete }) {
+  const { stage } = parseQuality(item.result.quality);
+  // riwayat lama menyimpan blob URL yang sudah tidak berlaku
+  const src = item.image?.startsWith('data:') ? item.image : null;
 
   return (
-    <div className="history-item-card" onClick={onClick}>
-      <div className="history-image-wrapper">
-        <img src={item.image} alt={item.result.species} className="history-thumb" />
-        <div className="history-badges">
-          <span className="badge-sm species">{item.result.species}</span>
-        </div>
-      </div>
-      
-      <div className="history-content">
-        <div className="history-main-info">
-          <p className="history-species-name">{item.result.species}</p>
-          <p className="history-quality-status">{item.result.quality}</p>
-        </div>
-        
-        <div className="history-meta">
-          <span className="history-time">{formatDate(item.timestamp)}</span>
-          <button 
-            className="btn-delete-individual"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            title="Hapus riwayat ini"
-          >
-          </button>
-        </div>
-      </div>
+    <div className="h-item">
+      <button className="h-open" onClick={onClick}>
+        {src ? (
+          <img className="h-thumb" src={src} alt="" />
+        ) : (
+          <span className="h-thumb h-noimg"><ImageOff size={20} /></span>
+        )}
+        <span className="h-body">
+          <strong>{splitLabel(item.result.species)}</strong>
+          <span className={`chip ${stageClass(stage)}`}>{stage}</span>
+          <time dateTime={item.timestamp}>{formatDate(item.timestamp)}</time>
+        </span>
+      </button>
+      <button
+        className="icon-btn h-del"
+        onClick={() => {
+          if (window.confirm('Yakin ingin menghapus item ini dari riwayat?')) {
+            onDelete();
+          }
+        }}
+        aria-label="Hapus dari riwayat"
+      >
+        <Trash2 size={16} />
+      </button>
     </div>
   );
-};
-
-export default HistoryItem;
+}

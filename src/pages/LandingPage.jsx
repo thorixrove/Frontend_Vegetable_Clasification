@@ -1,95 +1,98 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import Footer from '../components/Footer';
-import './LandingPage.css';
+import { ScanSearch } from 'lucide-react';
+import QualityScale from '../components/QualityScale';
 
-const LandingPage = () => {
+const steps = [
+  {
+    title: 'Pilih foto',
+    text: 'Unggah atau ambil foto satu jenis sayuran. Cahaya cukup dan latar polos memberi hasil terbaik.',
+  },
+  {
+    title: 'Tekan Prediksi',
+    text: 'Foto dikirim ke server dan dianalisis oleh dua model: satu untuk spesies, satu untuk kualitas.',
+  },
+  {
+    title: 'Tunggu beberapa detik',
+    text: 'Biasanya selesai dalam hitungan detik. Permintaan pertama bisa lebih lama jika server baru aktif.',
+  },
+  {
+    title: 'Baca hasilnya',
+    text: 'Lihat spesies, tingkat kualitas, keyakinan model, dan penjelasan tambahan.',
+  },
+];
+
+const crops = [
+  { emoji: '🌶️', name: 'Cabai', types: 'Cabai keriting dan cabai rawit' },
+  { emoji: '🥬', name: 'Kubis', types: 'Kubis hijau dan kubis merah' },
+  { emoji: '🍆', name: 'Terong', types: 'Terong gelatik hijau dan terong kopek ungu' },
+  { emoji: '🍅', name: 'Tomat', types: 'Tomat cherry dan tomat roma' },
+];
+
+export default function LandingPage() {
   return (
-    <div className="landing-page">
-      {/* Hero Section */}
-      <section className="hero-section">
-        <div className="hero-content">
-          <div className="hero-badge">📖 Architecture MobileNetV2</div>
-          <h1>Vegetable Classification</h1>
-          <p className="hero-subtitle">
-            Sistem Klasifikasi Spesies & Kualitas Sayuran 
-          </p>
-          <div className="hero-buttons">
-            <Link to="/predict" className="btn-primary">
-               Mulai Prediksi
-            </Link>
-            <a href="#panduan" className="btn-secondary">
-              Pelajari Cara Pakai
-            </a>
-          </div>
-          <div className="hero-stats">
-
-          </div>
+    <>
+      <section className="container hero">
+        <div className='hero-copy'>
+        <h1>Kenali jenis dan kesegaran sayuran dari satu foto</h1>
+        <p className="hero-lead">
+          Unggah foto cabai, kubis, terong, atau tomat. Model MobileNetV2 menentukan spesiesnya,
+          lalu menilai apakah sayuran itu masih muda, matang, layu, atau sudah busuk.
+        </p>
+        <div className="hero-actions">
+          <Link to="/predict" className="btn btn-primary">
+            <ScanSearch size={18} />
+            Mulai prediksi
+          </Link>
+          <a href="#cara-pakai" className="btn btn-ghost">Lihat cara pakai</a>
         </div>
-        <div className="hero-decoration">
-          <div className="floating-emoji emoji-1">🥬</div>
-          <div className="floating-emoji emoji-2">🌶️</div>
-          <div className="floating-emoji emoji-3">🍅</div>
-          <div className="floating-emoji emoji-4">🍆</div>
+        </div>
+
+        <div className="hero-scale">
+          <p className="hero-scale-title">Setiap foto dinilai pada skala kualitas ini</p>
+          <QualityScale active={1} />
+          <p className="hero-scale-note">
+            Penanda menunjukkan posisi hasil. Makin ke kanan, makin jauh dari segar.
+          </p>
         </div>
       </section>
 
-      {/* Panduan Section */}
-      <section id="panduan" className="panduan-section">
-        <div className="section-header">
-          <span className="section-badge">Mudah & Cepat</span>
-          <h2>Cara Mengidentifikasi Sayuran</h2>
-          <p className="section-description">
-            Ikuti 4 langkah sederhana untuk mengklasifikasi spesies dan kualitas sayuran Anda
-          </p>
+      <section id="cara-pakai" className="container section">
+        <div className="section-head">
+          <h2>Cara memakai</h2>
+          <p>Empat langkah, tanpa perlu membuat akun.</p>
         </div>
+        <ol className="steps">
+          {steps.map((s) => (
+            <li key={s.title}>
+              <h3>{s.title}</h3>
+              <p>{s.text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-        <div className="steps-container">
-          <div className="step-card">
-            <div className="step-icon">
-              <span className="icon-circle">📸</span>
-              <span className="step-number">1</span>
+      <section className="container section crops-section">
+        <div className="section-head">
+          <h2>Sayuran yang dikenali</h2>
+          <p>Empat jenis sayuran, masing-masing dengan dua spesies.</p>
+        </div>
+        <div className="crops">
+          {crops.map((c) => (
+            <div key={c.name} className="crop">
+              <span className="crop-emoji" aria-hidden="true">{c.emoji}</span>
+              <h3>{c.name}</h3>
+              <p>{c.types}</p>
             </div>
-            <h3>Berikan Gambar</h3>
-            <p>Unggah gambar sayuran yang ingin diidentifikasi. Pastikan foto jelas dan pencahayaan cukup.</p>
-          </div>
-
-          <div className="step-card">
-            <div className="step-icon">
-              <span className="icon-circle">▶️</span>
-              <span className="step-number">2</span>
-            </div>
-            <h3>Mulai Deteksi</h3>
-            <p>Klik tombol "Prediksi Sekarang" untuk memulai proses klasifikasi oleh model.</p>
-          </div>
-
-          <div className="step-card">
-            <div className="step-icon">
-              <span className="icon-circle">⏱️</span>
-              <span className="step-number">3</span>
-            </div>
-            <h3>Tunggu Beberapa Detik</h3>
-            <p>Sistem akan menganalisis gambar menggunakan model MobileNetV2 secara otomatis.</p>
-          </div>
-
-          <div className="step-card">
-            <div className="step-icon">
-              <span className="icon-circle">✅</span>
-              <span className="step-number">4</span>
-            </div>
-            <h3>Dapatkan Hasil</h3>
-            <p>Lihat hasil identifikasi spesies, tingkat kualitas, dan penjelasan lengkap sayuran.</p>
-          </div>
+          ))}
         </div>
       </section>
 
-
-
-
-
-      <Footer />
-    </div>
+      <section className="container cta-section">
+        <div className="cta">
+          <h2>Coba dengan foto sayuranmu sendiri</h2>
+          <Link to="/predict" className="btn btn-primary">Buka halaman prediksi</Link>
+        </div>
+      </section>
+    </>
   );
-};
-
-export default LandingPage;
+}

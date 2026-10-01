@@ -1,145 +1,114 @@
-import React, { useState } from 'react';
-import './PredictionResult.css';
+import { TriangleAlert } from 'lucide-react';
+import QualityScale from './QualityScale';
+import { parseQuality, splitLabel, stageClass, toPercent } from '../utils/format';
 
-const PredictionResult = ({ result }) => {
-  if (!result) return null;
+const LOW_CONFIDENCE = 0.6;
 
-  const [activeTab, setActiveTab] = useState('species');
+const toTitle = (key) => key.replace(/[_-]+/g, ' ').replace(/^./, (c) => c.toUpperCase());
 
-  // --- LOGIKA PERINGATAN KONSUMSI ---
-  const getWarningInfo = (qualityLabel) => {
-    // Deteksi kata kunci 'Busuk'
-    if (qualityLabel.includes('Busuk')) {
-      return {
-        type: 'danger',
-        icon: '🚫',
-        title: 'PERINGATAN: JANGAN DIKONSUMSI',
-        msg: 'Sayuran sudah busuk. Berisiko menyebabkan keracunan makanan. Segera buang!'
-      };
-    }
-    // Deteksi kata kunci 'Layu'
-    if (qualityLabel.includes('Layu')) {
-      return {
-        type: 'warning',
-        icon: '⚠️',
-        title: 'PERHATIAN: SEGERA OLAH',
-        msg: 'Kesegaran menurun. Nutrisi berkurang. Boleh dikonsumsi setelah dimasak.'
-      };
-    }
-    // Deteksi kata kunci 'Matang'
-    if (qualityLabel.includes('Matang')) {
-      return {
-        type: 'success',
-        icon: '✅',
-        title: 'AMAN: KONDISI OPTIMAL',
-        msg: 'Sayuran segar dan siap makan. Kandungan nutrisi maksimal.'
-      };
-    }
-    // Deteksi kata kunci 'Muda'
-    if (qualityLabel.includes('Muda')) {
-      return {
-        type: 'info',
-        icon: 'ℹ️',
-        title: 'AMAN: BISA DIKONSUMSI',
-        msg: 'Sayuran muda. Tekstur keras, cocok untuk acar atau masakan yang butuh perebusan lama.'
-      };
-    }
-    // Default fallback
-    return {
-      type: 'info',
-      icon: 'ℹ️',
-      title: 'Informasi Kualitas',
-      msg: 'Periksa penjelasan detail untuk mengetahui kondisi sayuran.'
-    };
-  };
+function renderValue(value) {
+  if (Array.isArray(value)) {
+    return (
+      <ul>
+        {value.map((item, i) => (
+          <li key={i}>{typeof item === 'object' ? JSON.stringify(item) : String(item)}</li>
+        ))}
+      </ul>
+    );
+  }
+  if (value && typeof value === 'object') return <Explanation data={value} />;
+  return <p>{String(value)}</p>;
+}
 
-  const warning = getWarningInfo(result.quality);
-  // ----------------------------------
-
+// Isi explanations.json belum saya lihat, jadi field dirender apa adanya.
+function Explanation({ data }) {
+  if (!data) return null;
+  if (typeof data === 'string') return <p>{data}</p>;
+  const entries = Object.entries(data);
+  if (!entries.length) return null;
   return (
-    <div className="prediction-result-card">
-      {/* Header Hasil */}
-      <div className="result-header">
-        <h2>📊 Hasil Klasifikasi</h2>
-        <div className="badges">
-          <span className="badge species-badge">{result.species}</span>
-          <span className="badge quality-badge">{result.quality}</span>
+    <dl className="explain">
+      {entries.map(([key, value]) => (
+        <div key={key}>
+          <dt>{toTitle(key)}</dt>
+          <dd>{renderValue(value)}</dd>
         </div>
+      ))}
+    </dl>
+  );
+}
+
+function Confidence({ label, value, color }) {
+  const pct = toPercent(value);
+  return (
+    <div className="conf" style={color ? { '--conf-color': color } : undefined}>
+      <div className="conf-head">
+        <span>{label}</span>
+        <strong>{pct}%</strong>
       </div>
-
-      {/* Confidence Bars */}
-      <div className="confidence-section">
-        <div className="conf-item">
-          <span className="conf-label">Keyakinan Spesies</span>
-          <div className="conf-bar-bg">
-            <div className="conf-bar-fill" style={{ width: `${result.species_confidence * 100}%` }}></div>
-          </div>
-          <span className="conf-value">{(result.species_confidence * 100).toFixed(1)}%</span>
-        </div>
-        <div className="conf-item">
-          <span className="conf-label">Keyakinan Kualitas</span>
-          <div className="conf-bar-bg">
-            <div className="conf-bar-fill" style={{ width: `${result.quality_confidence * 100}%` }}></div>
-          </div>
-          <span className="conf-value">{(result.quality_confidence * 100).toFixed(1)}%</span>
-        </div>
-      </div>
-
-      {/* --- BAGIAN BARU: BANNER PERINGATAN --- */}
-      <div className={`alert-banner ${warning.type}`}>
-        <span className="alert-icon">{warning.icon}</span>
-        <div className="alert-text">
-          <strong>{warning.title}</strong>
-          <p>{warning.msg}</p>
-        </div>
-      </div>
-      {/* ------------------------------------ */}
-
-      {/* Tab Penjelasan */}
-      <div className="explanation-tabs">
-        <button 
-          className={`tab-btn ${activeTab === 'species' ? 'active' : ''}`}
-          onClick={() => setActiveTab('species')}
-        >
-          🌿 Spesies
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === 'quality' ? 'active' : ''}`}
-          onClick={() => setActiveTab('quality')}
-        >
-           🥗 Kualitas
-        </button>
-      </div>
-
-      {/* Konten Penjelasan */}
-      <div className="explanation-content">
-        {activeTab === 'species' && result.species_explanation && (
-          <div className="info-box species-info">
-            <h3>{result.species_explanation.nama}</h3>
-            <p className="desc">{result.species_explanation.deskripsi}</p>
-            <div className="info-grid">
-              <div className="info-item">
-                <strong>Kandungan:</strong> {result.species_explanation.kandungan}
-              </div>
-              <div className="info-item">
-                <strong>Tips Simpan:</strong> {result.species_explanation.tips}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'quality' && result.quality_explanation && (
-          <div className={`info-box quality-info ${result.quality_confidence > 0.7 ? 'safe' : 'warning'}`}>
-            <h3>Status: {result.quality_explanation.status}</h3>
-            <p className="desc">{result.quality_explanation.deskripsi}</p>
-            <div className="recommendation">
-              <strong>Rekomendasi:</strong> {result.quality_explanation.rekomendasi}
-            </div>
-          </div>
-        )}
+      <div className="conf-track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+        <div className="conf-fill" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
-};
+}
 
-export default PredictionResult;
+export default function PredictionResult({ result }) {
+  const { crop, stage, index } = parseQuality(result.quality);
+  const speciesName = splitLabel(result.species);
+  const lowConfidence =
+    Math.min(result.species_confidence, result.quality_confidence) < LOW_CONFIDENCE;
+  const mismatch = !result.species.startsWith(crop);
+
+  return (
+    <article className="result">
+      <div className="result-summary">
+        <section className="result-block">
+          <p className="result-label">Spesies</p>
+          <h2 className="result-title">{speciesName}</h2>
+          <div className="conf-group">
+            <Confidence label="Keyakinan spesies" value={result.species_confidence} />
+            <Confidence
+              label="Keyakinan kualitas"
+              value={result.quality_confidence}
+              color={stage ? `var(--${stageClass(stage)})` : undefined}
+            />
+          </div>
+        </section>
+
+        <section className="result-block">
+          <p className="result-label">Kualitas</p>
+          <div>
+            <span className={`chip chip-lg ${stageClass(stage)}`}>{stage || splitLabel(result.quality)}</span>
+          </div>
+          {index !== null && <QualityScale active={index} />}
+        </section>
+
+        {mismatch && (
+          <p className="notice" role="note">
+            <TriangleAlert size={18} />
+            Model spesies mengenali {speciesName}, sedangkan model kualitas menilai {crop.toLowerCase()}.
+            Hasil kurang dapat dipercaya, coba foto lain.
+          </p>
+        )}
+        {lowConfidence && !mismatch && (
+          <p className="notice" role="note">
+            <TriangleAlert size={18} />
+            Keyakinan model rendah. Coba foto dengan cahaya lebih terang dan satu sayuran di tengah gambar.
+          </p>
+        )}
+      </div>
+
+      <div className="explain-wrap">
+        <details open>
+          <summary>Tentang {speciesName}</summary>
+          <Explanation data={result.species_explanation} />
+        </details>
+        <details>
+          <summary>Kondisi {stage ? stage.toLowerCase() : 'sayuran'}</summary>
+          <Explanation data={result.quality_explanation} />
+        </details>
+      </div>
+    </article>
+  );
+}

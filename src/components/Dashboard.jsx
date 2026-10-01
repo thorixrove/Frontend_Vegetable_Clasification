@@ -1,78 +1,34 @@
-import React from 'react';
-import './Dashboard.css';
+import { parseQuality, splitLabel } from '../utils/format';
 
-const Dashboard = ({ history }) => {
-  const totalPredictions = history.length;
-  
-  // Hitung rata-rata confidence (spesies + kualitas)
-  const avgConfidence = totalPredictions > 0
-    ? (history.reduce((sum, item) => sum + item.result.species_confidence + item.result.quality_confidence, 0) / (totalPredictions * 2) * 100).toFixed(1)
-    : 0;
+export default function Dashboard({ history }) {
+  if (!history.length) return null;
 
-  // Hitung frekuensi kemunculan
-  const countOccurrences = (arr) => {
-    return arr.reduce((acc, curr) => {
-      acc[curr] = (acc[curr] || 0) + 1;
-      return acc;
-    }, {});
-  };
+  const total = history.length;
+  const fresh = history.filter(({ result }) =>
+    ['Muda', 'Matang'].includes(parseQuality(result.quality).stage),
+  ).length;
 
-  const speciesCounts = countOccurrences(history.map(h => h.result.species));
-  const qualityCounts = countOccurrences(history.map(h => h.result.quality));
-
-  const topSpecies = Object.keys(speciesCounts).length > 0 
-    ? Object.keys(speciesCounts).reduce((a, b) => speciesCounts[a] > speciesCounts[b] ? a : b) 
-    : 'Belum ada';
-    
-  const topQuality = Object.keys(qualityCounts).length > 0 
-    ? Object.keys(qualityCounts).reduce((a, b) => qualityCounts[a] > qualityCounts[b] ? a : b) 
-    : 'Belum ada';
+  const counts = {};
+  history.forEach(({ result }) => {
+    counts[result.species] = (counts[result.species] || 0) + 1;
+  });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const topSpecies = top ? top[0] : '';
 
   return (
-    <div className="dashboard-container">
-
-      
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-info">
-            <h3>Total Prediksi</h3>
-            <p className="stat-value">{totalPredictions}</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-info">
-            <h3>Rata-rata Confidence</h3>
-            <p className="stat-value">{avgConfidence}%</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-    
-          <div className="stat-info">
-            <h3>Spesies Terbanyak</h3>
-            <p className="stat-value">{topSpecies}</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-info">
-            <h3>Kualitas Dominan</h3>
-            <p className="stat-value">{topQuality}</p>
-          </div>
-        </div>
+    <div className="stats">
+      <div className="stat">
+        <p className="stat-value">{total}</p>
+        <p className="stat-label">Prediksi tersimpan</p>
       </div>
-      
-      <div className="dashboard-info-box">
-        <h4> Tips Penggunaan</h4>
-        <ul>
-          <li>Pastikan gambar sayuran jelas dengan pencahayaan yang cukup</li>
-          <li>Hindari background yang ramai agar model lebih fokus pada objek</li>
-          <li>Gunakan gambar close-up untuk akurasi klasifikasi terbaik</li>
-        </ul>
+      <div className="stat">
+        <p className="stat-value">{fresh} dari {total}</p>
+        <p className="stat-label">Masih segar (muda atau matang)</p>
+      </div>
+      <div className="stat">
+        <p className="stat-value">{splitLabel(topSpecies)}</p>
+        <p className="stat-label">Spesies paling sering</p>
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}
